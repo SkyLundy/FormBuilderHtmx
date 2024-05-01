@@ -1,4 +1,4 @@
-# FormBuilder HTMX
+# ProcessWire FormBuilder HTMX
 
 A zero-configuration drop in module to power your ProcessWire Pro FormBuilder forms with AJAX provided by HTMX.
 
@@ -30,7 +30,9 @@ Where you want a form rendered HTMX ready, replace the `$forms->render('your_for
 
 The `$htmxForms->render()` method is a drop-in replacement for the FormBuilder render method. It can be hooked and accepts the second `$vars` array argument passed on to FormBuilder. Refer to FormBuilder documentation for more information.
 
-**NOTE**: CSRF protection must be disabled for forms using HTMX/AJAX. ProcessWire does not recognize the form submission AJAX call as the same as that of the user so CSRF errors will occur.
+### CSRF Protection
+**CSRF protection must be disabled for forms using HTMX/AJAX**
+ProcessWire does not recognize the form submission AJAX call as the same as that of the user so CSRF errors will occur.
 
 Please keep your use case and type of data a form processes in mind when choosing which forms to enable AJAX submissions. For example, login forms may not be a good candidate for AJAX handling, however contact and less critical forms should be fine.
 
