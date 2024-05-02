@@ -36,16 +36,23 @@ class FormBuilderHtmx extends Process implements Module {
   /**
    * Provides a drop-in $htmxForms->render() replacement method for $forms->render() where an HTMX
    * powered form is desired
-   * @param  string $formName Name of form to render
+   * @param  string     $formName           Name of form to render
+   * @param  array|Page $vars               Value passed to FormBuilder::render()
+   * @param  string     $indicatorSelector  CSS selector for the target activity element
    */
-  public function render(string $formName): string {
-    return $this->replaceFormPostMethod(
-      wire('forms')->render($formName)
+  public function ___render(
+    string $formName,
+    array|Page $vars = [],
+    ?string $indicatorSelector = null
+  ): string {
+    return $this->renderPreparedMarkup(
+      wire('forms')->render($formName, $vars),
+      $indicatorSelector
     );
   }
 
   /**
-   * Add hooks to operations where necessary
+   * Add hooks to render return markup on form submission
    */
   private function addHooks(): void {
     $this->wire->addHookAfter('Page::render', null, function(HookEvent $e) {
@@ -58,74 +65,99 @@ class FormBuilderHtmx extends Process implements Module {
       $submitKey = $input->_submitKey;
       $inputfieldForm = $input->_InputfieldForm;
 
-      $formMarkup = $this->renderForm($inputfieldForm, $submitKey, $e->return);
+      $formMarkup = $this->renderAjaxResponseMarkup($inputfieldForm, $submitKey, $e->return);
 
-      if ($formMarkup) {
-        $e->return = $this->replaceFormPostMethod($formMarkup);
-      }
+      $formMarkup && $e->return = $this->renderPreparedMarkup($formMarkup);
     });
   }
 
   /**
-   * Looks for common FormBuilder request body signatures to determine if this is a FormBuilder
-   * request to process data
+   * Looks for FormBuilder request body signatures to determine if the current request is a
+   * FormBuilder POST request to process data
    */
   private function isFormBuilderSubmissionRequest(): bool {
       $input = wire('input');
+      $isPostRequest = $input->requestMethod('post');
       $submitKey = $input->_submitKey;
       $inputfieldForm = $input->_InputfieldForm;
 
-      if (!$input->requestMethod('post') || !$submitKey || !$inputfieldForm) {
-        return false;
+      if ($isPostRequest || $submitKey || $inputfieldForm) {
+        return true;
       };
 
-      return true;
+      return false;
   }
 
   /**
-   * Swaps the form attribute `method="post"' with the HTMX 'hx-post' attribute
-   * @param  string $renderedForm Full rendered form
+   * Handles modifying the form markup when initially rendered to the page
+   * @param  string $renderedForm HTMX ready form markup
    */
-  private function replaceFormPostMethod(string $renderedForm): string {
-    return preg_replace('/(method="post")/i', 'hx-post', $renderedForm);
+  private function renderPreparedMarkup(
+    string $renderedForm,
+    ?string $indicatorSelector = null
+  ): string {
+    $indicator = $indicatorSelector ? "hx-indicator='{$indicatorSelector}'" : '';
+
+    // Add insert HTMX attributes on the form element, indicator if provided
+    $markup = preg_replace(
+      '/(method="post")/i',
+      "hx-post hx-disabled-elt='button[type=submit]' {$indicator}",
+      $renderedForm
+    );
+
+    return $markup;
   }
 
   /**
+   * Handles modifying the form markup returned after a form is processed
    * Finds a FormBuilder form in a provided markup string and returns the extracted FormBuilder form
    * @param  string $formName       Name of form from requests parameters
    * @param  string $renderedMarkup Rendered markup that may contain a FormBuilder form
    */
-  public function ___renderForm(
+  public function renderAjaxResponseMarkup(
     string $formName,
     string $submitKey,
     string $renderedMarkup
   ): ?string {
     $patternFormName = preg_quote($formName);
 
-    $hasForm = preg_match(
+    // Find the full FormBuilder form markup block
+    $formBuilderMarkup = preg_match(
       "/<div class=[\"']FormBuilder FormBuilder-{$patternFormName}((.|\n|\r|\t)*)<!--\/.FormBuilder-->/U",
       $renderedMarkup,
       $matches
     );
 
-    if (!$hasForm) {
+    if (!$formBuilderMarkup) {
       return null;
     }
 
     // Check for the individual submit key to ensure that we have the correct form out of similar
-    // forms that may be present. Get longest string length to make sure we aren't selecting a
-    // match containing a fragment of the form markup
-    $form = array_reduce($matches, function($match, $markup) use ($submitKey) {
+    // forms that may be present. Get longest string containing the key to ensure we aren't
+    // selecting a match containing a fragment of form markup
+    $targetMarkup = array_reduce($matches, function($match, $markup) use ($submitKey) {
       $containsSubmitKey = str_contains($markup, $submitKey);
 
       if ($containsSubmitKey) {
-        return $match = strlen($markup) > strlen($match) ? $markup : $match;
+        return $match = strlen($markup) > strlen($match ?? '') ? $markup : $match;
       }
 
       return $match;
     }, null);
 
+    if (!$targetMarkup) {
+      return null;
+    }
 
-    return $form ? preg_replace('/(method="post")/i', 'hx-post', $matches[0]) : null;
+    // Extract the contents of the form element
+    // HTMX will replace the child elements of the existing form element with the returned markup
+    preg_match('/(<form .*?>)(.|\n)*?(<\/form>)/', $targetMarkup, $matches);
+
+    [$formMarkup, $formOpenTag] = $matches;
+
+    $elements = str_replace($formOpenTag, '', $formMarkup);
+    $elements = str_replace('</form>', '', $elements);
+
+    return $elements;
   }
 }
