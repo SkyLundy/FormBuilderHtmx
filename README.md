@@ -103,7 +103,3 @@ $wire->addHookAfter('FormBuilderHtmx::render', function(HookEvent $event) {
   $event->return = $outputMarkup;
 });
 ```
-
-## Known Issues
-
-HTMX provides a method where an element can be disabled while an AJAX request is in flight. At the time of this module's authorship, there is currently a possible bug that prevents this from being applied. FormBuilderHtmx includes and does apply the necessary HTMX `hx-disabled-elt` attribute to the `submit` button. This feature will work when a bugfix is released. More information in the HTMX Github repo.
