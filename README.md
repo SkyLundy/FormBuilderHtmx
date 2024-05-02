@@ -80,7 +80,7 @@ Please keep your use case and type of data a form processes in mind when choosin
 
 When rendering forms to the page, the form markup is modified before output with the form attribute `method="post"` replaced with `hx-post`. This transfers submission handling to HTMX and AJAX.
 
-When a form is submitted, FormBuilder handles processing the data as usual and then returns the full page markup which would otherwise trigger a page refresh. Instead, FormBuilderHtmx parses the page markup before rendering, the form extracted from the page, `method="post"` is replaced with `hx-post`, and then the form markup is returned to complete the AJAX request where HTMX and FormBuilderHtmx then replace the contents of the `<form>` element in place with the results of the submission.
+When a form is submitted, FormBuilder handles processing the data as usual and then returns the full page markup which would otherwise trigger a page refresh. Instead, FormBuilderHtmx parses the page markup before rendering, the form extracted and returned to complete the AJAX request where HTMX then replaces the contents of the `<form>` element in place with the results of the submission.
 
 FormBuilderHtmx also disables the `Submit` button on submission to prevent repeat submissions by click-happy users.
 
