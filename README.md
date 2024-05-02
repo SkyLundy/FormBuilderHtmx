@@ -19,7 +19,7 @@ Features:
 - PHP >= 8.1
 - The HTMX library present and loaded (is separate, not provided with this module)
 
-This module was developed using FormBuilder 0.5.5, however it should be compatible with other versions.
+This module was developed using FormBuilder 0.5.5, however while not guaranteed, it should be compatible with other versions.
 
 ## How To Use
 Ensure that HTMX is present and loaded with your page assets. [HTMX instructions here](https://htmx.org/docs/#installing)
