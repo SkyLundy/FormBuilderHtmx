@@ -81,7 +81,7 @@ class FormBuilderHtmx extends Process implements Module {
       $submitKey = $input->_submitKey;
       $inputfieldForm = $input->_InputfieldForm;
 
-      if ($isPostRequest || $submitKey || $inputfieldForm) {
+      if ($isPostRequest && $submitKey && $inputfieldForm) {
         return true;
       };
 
