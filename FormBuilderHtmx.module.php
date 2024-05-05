@@ -6,7 +6,7 @@ class FormBuilderHtmx extends Process implements Module {
     return [
       'title' => 'FormBuilder HTMX',
       'summary' => __('Render HTMX ready FormBuilder forms submitted via AJAX', __FILE__),
-      'version' => '001',
+      'version' => '002',
       'href' => 'https://github.com/SkyLundy',
       'icon' => 'code',
       'autoload' => true,
