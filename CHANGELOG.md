@@ -1,4 +1,22 @@
-# Form Select Changelog
+# FormBuilder HTMX Changelog
+
+## 0.0.3 2024-06-03
+
+- FormBuilderHtmx is now a true drop-in replacement for the FormBuilder `render()` method. All
+  FormBuilder methods and properties can be accessed from the `$htmxForms->render()` with the same
+  behavior as `$forms->render()`
+- Add better per-form tracking, forms and their requests are uniquely identified
+- Allows for rendering the same form in multiple locations with submissions/validations unique to
+  each where the default FormBuilder embed methods will show errors on all forms if one form has
+  errors
+- Add request headers to persist form configurations between request/response loop
+- Add better checking for HTMX form submissions to differentiate from non-HTMX submissions
+- Fix issue with form being replaced with entire page markup
+
+### Known Issues
+If the same form is present more than once on the same page and both FormBuilder and FormBuilderHtmx
+are used to render them, errors for the non-HTMX form will show up as errors on the HTMX form. This
+can be overcome by using FormBuilder HTMX to render all forms.
 
 ## 0.0.2 2024-05-05
 

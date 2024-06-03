@@ -39,7 +39,7 @@ class FormBuilderHtmx extends Wire implements Module {
    */
   public function ready()
   {
-    $this->addPostFormProcessingHooks();
+    $this->addPostFormProcessingHook();
   }
 
   /**
@@ -67,7 +67,7 @@ class FormBuilderHtmx extends Wire implements Module {
   /**
    * Add hooks to handle FormBuilder HTMX submissions after page render
    */
-  private function addPostFormProcessingHooks(): void
+  private function addPostFormProcessingHook(): void
   {
     $this->wire->addHookAfter(
       'Page::render',
