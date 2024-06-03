@@ -2,13 +2,18 @@
 
 class FormBuilderHtmx extends Wire implements Module {
 
-  private const HTMX_FORM_ID_HEADER = 'Fb-Htmx-Id';
+  /**
+   * Names of request headers to perist data during per-form request/response
+   */
+  private const ID_REQUEST_HEADER = 'Fb-Htmx-Id';
+  private const INDICATOR_REQUEST_HEADER = 'Fb-Htmx-Indicator';
 
-  public static function getModuleInfo() {
+  public static function getModuleInfo()
+  {
     return [
       'title' => 'FormBuilder HTMX',
       'summary' => __('Render HTMX ready FormBuilder forms submitted via AJAX', __FILE__),
-      'version' => '002',
+      'version' => '003',
       'href' => 'https://github.com/SkyLundy',
       'icon' => 'code',
       'autoload' => true,
@@ -24,15 +29,17 @@ class FormBuilderHtmx extends Wire implements Module {
   /**
    * {@inheritdoc}
    */
-  public function init() {
+  public function init()
+  {
     $this->wire->set('htmxForms', $this);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function ready() {
-    $this->addHooks();
+  public function ready()
+  {
+    $this->addPostFormProcessingHooks();
   }
 
   /**
@@ -47,185 +54,118 @@ class FormBuilderHtmx extends Wire implements Module {
     array|Page $vars = [],
     ?string $indicator = null
   ): FormBuilderRender {
-    // Set up hook only for this method call
-    $hookId = $this->wire->addHookAfter(
-      'FormBuilderProcessor::render',
-      fn ($e) => $e->return = $this->renderHtmxMarkup($e->return, $indicator)
-    );
+    // Hooks only this method call on initial render to only target HTMX forms
+    $this->wire->addHookAfter('FormBuilderProcessor::render', function($e) use ($indicator) {
+      $e->return = $this->renderHtmxFormMarkup($e->return, $indicator);
 
-    $formBuilderRender = wire('forms')->render($formName, $vars);
-
-    // Hook only for this render in this method to add HTMX
-    $this->wire->removeHook($hookId);
-
-    return $formBuilderRender;
-  }
-
-  /**
-   * Add hooks to render return markup on form submission
-   */
-  private function addHooks(): void {
-    $this->wire->addHookAfter('Page::render', function(HookEvent $e) {
-
-      if (!$this->isHtmxFormBuilderRequest()) {
-        return;
-      }
-
-      $formMarkup = $this->renderAjaxResponseMarkup(
-        wire('input')->_InputfieldForm,
-        $e->return
-      );
-
-      $formMarkup && $e->return = $this->renderHtmxMarkup($formMarkup);
+      $e->removeHook(null);
     });
+
+    return wire('forms')->render($formName, $vars);
   }
 
   /**
-   * Looks for FormBuilder request body/header signatures to determine if the current request is a
-   * FormBuilder HTMX POST request
+   * Add hooks to handle FormBuilder HTMX submissions after page render
    */
-  private function isHtmxFormBuilderRequest(): bool {
+  private function addPostFormProcessingHooks(): void
+  {
+    $this->wire->addHookAfter(
+      'Page::render',
+      fn ($e) => $this->isHtmxRequest() && $e->return = $this->renderHtmxResponse($e->return)
+    );
+  }
+
+  /**
+   * Looks for FormBuilder request signatures to determine if the current request is both a
+   * FormBuilder submission and an HTMX request
+   */
+  private function isHtmxRequest(): bool
+  {
       $input = wire('input');
-      $isPostRequest = $input->requestMethod('post');
-      $submitKey = $input->_submitKey;
-      $inputfieldForm = $input->_InputfieldForm;
 
-      $requestHeaders = getallheaders();
+      $requestHeaders = getallheaders() + ['Hx-Request' => false, self::ID_REQUEST_HEADER => null];
 
-      $isHtmxRequest = $requestHeaders['Hx-Request'] ?? 'false';
-      $formBuilderHtmxId = $requestHeaders[self::HTMX_FORM_ID_HEADER] ?? null;
-
-      return $isPostRequest &&
-             $submitKey &&
-             $inputfieldForm &&
-             $formBuilderHtmxId &&
-             $isHtmxRequest === 'true';
+      return $input->requestMethod('post') &&
+             $input->_submitKey &&
+             $input->_InputfieldForm &&
+             !!$requestHeaders[self::ID_REQUEST_HEADER] &&
+             $requestHeaders['Hx-Request'] === 'true';
   }
 
   /**
    * Handles modifying the form markup when initially rendered to the page
-   * @param  string $renderedForm HTMX ready form markup
+   * - Creates a unique ID to identify each form individually
+   * - Adds wrapper with unique ID for HTMX response swap
+   * - Adds HTMX attributes to form
+   * - Adds request headers to persist data between rendering/processing/response loop
+   *
+   * @param string $renderedForm FormBuilder form markup
+   * @param string $indicator    HTML "loading" indicator element, falls back to pulling from
+   *                             request headers if not present
    */
-  private function renderHtmxMarkup(
-    string $renderedForm,
-    ?string $indicator = null
-  ): string {
-    $indicator = $indicator ? "hx-indicator='{$indicator}'" : null;
+  private function renderHtmxFormMarkup(string $renderedForm, ?string $indicator = null): string
+  {
+    $indicator = $this->indicatorSelector($indicator);
+    $id = $this->htmxFormId();
+    $renderedForm = $this->addFormBuilderHtmxContainer($renderedForm, $id);
 
-    // Add an ID to place into the headers to identify this specific form
-    // Solves issue where the same form rendered 2x causes issues finding this form vs other on page
-    $headers = json_encode([self::HTMX_FORM_ID_HEADER => $this->htmxFormId()]);
+    // Headers are used to persist data between page render->submission->HTMX response
+    $headers = json_encode([
+      self::ID_REQUEST_HEADER => $id,
+      self::INDICATOR_REQUEST_HEADER => $indicator
+    ]);
 
     $htmxAttributes = array_filter([
       'hx-post',
       "hx-headers='{$headers}'",
       "hx-disabled-elt='button[type=submit]'",
+      "hx-target='#{$id}'",
+      "hx-swap='outerHTML'",
       $indicator ? "hx-indicator='{$indicator}'" : null,
     ]);
 
-    // Add insert HTMX attributes on the form element, indicator if provided
     return preg_replace('/(method="post")/i', implode(' ', $htmxAttributes), $renderedForm);
   }
 
   /**
-   * Gets the current HTMX form ID or creates a new one
+   * Inserts
+   * @param string      $renderedForm Rendered form markup
+   * @param string|null $id           Optional ID, otherwise will be pulled from headers, or generated
    */
-  private function htmxFormId(): string {
-    return getallheaders()[self::HTMX_FORM_ID_HEADER] ?? (new WireRandom)->alphanumeric(5);
+  private function addFormBuilderHtmxContainer(string $renderedForm, ?string $id = null): string
+  {
+    $id ??= $this->htmxFormId();
+
+    return "<div id='{$id}' data-formbuilder-htmx>{$renderedForm}</div>";
   }
 
   /**
-   * Handles modifying the form markup returned after a form is processed
-   * First checks for submission results markup, then searches for the corresponding form for return
-   *
-   * @param  string $formName          Name of form from requests parameters
-   * @param  string $formBuilderMarkup Rendered markup that may contain a FormBuilder form
+   * Gets an existing ID from request headers, or creates a new one for rendering
    */
-  private function renderAjaxResponseMarkup(string $formName, string $formBuilderMarkup): ?string {
-    // $resultMarkup = $this->getSubmissionResultMarkup($formName, $formBuilderMarkup);
-
-    // if ($resultMarkup) {
-    //   return $resultMarkup;
-    // }
-
-    return $this->getSubmissionFormMarkup($formName, $formBuilderMarkup);
+  private function htmxFormId(): string
+  {
+    return getallheaders()[self::ID_REQUEST_HEADER] ?? 'fb-htmx-' . (new WireRandom)->alphanumeric(10);
   }
 
   /**
-   * Searches for form submission response markup, returns as string if present
-   *
-   * @param  string $formName          Name of form from requests parameters
-   * @param  string $formBuilderMarkup FormBuilder markup that may contain a submission result
+   * Gets a selector for an indicator element from headers if it exists, or returns fallback param
+   * @param  string|null $indicator Optional fallback indicator
    */
-  private function getSubmissionResultMarkup(string $formName, string $formBuilderMarkup): ?string {
-    $formName = preg_quote($formName);
+  private function indicatorSelector(?string $indicator = null): ?string
+  {
+    return getallheaders()[self::INDICATOR_REQUEST_HEADER] ?? $indicator;
+  }
 
-    $resultMarkup = preg_match(
-      "/<div id=[\"']FormBuilderSubmitted[\"'] data-name=[\"']{$formName}[\"']>((.|\n|\r|\t)*)<!--\/.FormBuilder-->/U",
-      $formBuilderMarkup,
-      $matches
-    );
+  /**
+   * Finds the form that has been submitted and extracts the markup to return what HTMX expects
+   * @param  string $renderedPageMarkup Rendered full page markup
+   */
+  private function renderHtmxResponse(string $renderedPageMarkup): string
+  {
+    $pattern = "/<div id=[\"']{$this->htmxFormId()}[\"']((.|\n|\r|\t)*)<!--\/.FormBuilder-->/U";
 
-    if (!$resultMarkup) {
-      return null;
-    }
+    preg_match($pattern, $renderedPageMarkup, $matches);
 
     return $matches[0];
-  }
-
-  /**
-   * Searches for FormBuilder form markup, returns as string if present
-   *
-   * @param  string $formName          Name of form from requests parameters
-   * @param  string $formBuilderMarkup FormBuilder markup that may contain a submission result
-   */
-  private function getSubmissionFormMarkup(string $formName, string $formBuilderMarkup): ?string {
-     $patternFormName = preg_quote($formName);
-
-    // Find the full FormBuilder form markup block
-    $formBuilderMarkup = preg_match_all(
-      "/<div class=[\"']FormBuilder FormBuilder-{$patternFormName}((.|\n|\r|\t)*)<!--\/.FormBuilder-->/U",
-      // "/<div class=[\"']FormBuilder FormBuilder-{$patternFormName}((.|\n|\r|\t)*)<!--\/.FormBuilder-->/U",
-      $formBuilderMarkup,
-      $matches
-    );
-dump($this->htmxFormId());
-dump($matches);
-die;
-    return $matches[0];
-
-    if (!$formBuilderMarkup) {
-      return null;
-    }
-
-    // $fbElements = array_column($matches, 0);
-    [self::HTMX_FORM_ID_HEADER => $fbHtmxId] = getallheaders();
-dump($fbHtmxId, $formName);
-    foreach ($matches as $match) {
-      dump($match);
-    }
-die;
-    $match = array_reduce(
-      $matches[0],
-      fn ($match, $fbElement) => $match = str_contains($fbElement, $fbHtmxId) ? $fbElement : $match,
-      null
-    );
-
-    dd($match);
-    die;
-
-    $markup = $matches[0];
-
-    // Extract the contents of the form element
-    // HTMX will replace the child elements of the existing form element with the returned markup
-    /* preg_match('/(<form .*?>)(.|\n)*?(<\/form>)/', $matches[0], $matches); */
-bd($matches);
-bd('fired');
-    [$formMarkup, $formOpenTag] = $matches;
-
-    $elements = str_replace($formOpenTag, '', $formMarkup);
-    $elements = str_replace('</form>', '', $elements);
-
-    return $elements;
   }
 }
