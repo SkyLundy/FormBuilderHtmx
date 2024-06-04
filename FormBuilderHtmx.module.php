@@ -14,7 +14,7 @@ class FormBuilderHtmx extends Wire implements Module {
       'title' => 'FormBuilder HTMX',
       'summary' => __('Render HTMX ready FormBuilder forms submitted via AJAX', __FILE__),
       'version' => '003',
-      'href' => 'https://github.com/SkyLundy',
+      'href' => 'https://processwire.com/talk/topic/29964-formbuilderhtmx-a-zero-configuration-pro-formbuilder-companion-module-to-enable-ajax-form-submissions/',
       'icon' => 'code',
       'autoload' => true,
       'singular' => true,
@@ -136,7 +136,13 @@ class FormBuilderHtmx extends Wire implements Module {
   {
     $id ??= $this->htmxFormId();
 
-    return "<div id='{$id}' data-formbuilder-htmx>{$renderedForm}</div>";
+    $markup = "<div id='{$id}' data-formbuilder-htmx>{$renderedForm}</div>";
+
+    // Markup regions removes comments before inserting content so this tag must be added to
+    // indicate the end of the markup for a target form in place of the end FormBuilder comment
+    $this->config->useMarkupRegions && $markup .= '<span data-formbuilder-htmx-end></span>';
+
+    return $markup;
   }
 
   /**
@@ -162,7 +168,7 @@ class FormBuilderHtmx extends Wire implements Module {
    */
   private function renderHtmxResponse(string $renderedPageMarkup): string
   {
-    $pattern = "/<div id=[\"']{$this->htmxFormId()}[\"']((.|\n|\r|\t)*)<!--\/.FormBuilder-->/U";
+    $pattern = "/\n?<div id=[\"']{$this->htmxFormId()}[\"']((.|\n|\r|\t)*)(<!--\/.FormBuilder-->|<span data-formbuilder-htmx-end><\/span>)/U";
 
     preg_match($pattern, $renderedPageMarkup, $matches);
 
