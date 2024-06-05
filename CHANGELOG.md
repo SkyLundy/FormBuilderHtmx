@@ -1,5 +1,10 @@
 # FormBuilder HTMX Changelog
 
+## 0.0.4 2024-06-05
+
+- Fix issue where rendering forms/responses in loops over repeater field content failed. Thanks to
+  @lemachinarbo for finding and resolving in PR https://github.com/SkyLundy/FormBuilderHtmx/pull/1
+
 ## 0.0.3 2024-06-03
 
 - FormBuilderHtmx is now a true drop-in replacement for the FormBuilder `render()` method. All
@@ -23,7 +28,7 @@ can be overcome by using FormBuilder HTMX to render all forms.
 ### Bufix, recommended for all users
 
 - Fixed issue where module was not properly identifying form submissions and may cause
-  non-FormBuilderPOST requests to fail. Credit to @wbmnfktr for finding and reporting
+  non-FormBuilder POST requests to fail. Credit to @wbmnfktr for finding and reporting
 
 ## 0.0.1 2024-05-01
 
