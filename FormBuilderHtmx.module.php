@@ -71,7 +71,9 @@ class FormBuilderHtmx extends Wire implements Module {
   {
     $this->wire->addHookAfter(
       'Page::render',
-      fn ($e) => $this->isHtmxRequest() && $e->return = $this->renderHtmxResponse($e->return)
+      fn ($e) =>  $this->isHtmxRequest() && ( 
+        !empty($e->return) && $e->return = $this->renderHtmxResponse($e->return)
+      )
     );
   }
 
@@ -172,6 +174,6 @@ class FormBuilderHtmx extends Wire implements Module {
 
     preg_match($pattern, $renderedPageMarkup, $matches);
 
-    return $matches[0];
+    return $matches[0] ?? '';
   }
 }
