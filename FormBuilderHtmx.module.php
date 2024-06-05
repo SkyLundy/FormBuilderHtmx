@@ -71,8 +71,9 @@ class FormBuilderHtmx extends Wire implements Module {
   {
     $this->wire->addHookAfter(
       'Page::render',
-      fn ($e) => !empty($e->return) && ( 
-	      $this->isHtmxRequest() && $e->return = $this->renderHtmxResponse($e->return)
+      fn ($e) =>  $this->isHtmxRequest() && ( 
+        !empty($e->return) && $e->return = $this->renderHtmxResponse($e->return)
+      )
     );
   }
 
