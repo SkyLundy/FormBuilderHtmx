@@ -13,7 +13,7 @@ class FormBuilderHtmx extends Wire implements Module {
     return [
       'title' => 'FormBuilder HTMX',
       'summary' => __('Render HTMX ready FormBuilder forms submitted via AJAX', __FILE__),
-      'version' => '004',
+      'version' => '100',
       'href' => 'https://processwire.com/talk/topic/29964-formbuilderhtmx-a-zero-configuration-pro-formbuilder-companion-module-to-enable-ajax-form-submissions/',
       'icon' => 'code',
       'autoload' => true,
