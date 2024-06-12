@@ -1,5 +1,10 @@
 # FormBuilder HTMX Changelog
 
+## 1.0.0 2024-06-12
+
+- Update readme
+- Version bump for submission to ProcessWire modules directory
+
 ## 0.0.4 2024-06-05
 
 - Fix issue where rendering forms/responses in loops over repeater field content failed. Thanks to

@@ -21,15 +21,17 @@ Features:
 
 Ensure that HTMX is present and loaded. [See HTMX docs for details.](https://htmx.org/docs/#installing)
 
+HTMX is not included for multiple reasons. The most important being that this module is built using core HTMX behavior that is not expected to change with new versions, but will be updated should that change. It also guarantees that there won't be collisions where HTMX may already exist in your project. Use the version that works for you, and confidently add this module to existing applications.
+
 ## How To Use
 
 Step 1. Disable CSRF protection for the form. (see why below)
 
-Step 2. Then...
+Step 2. Use switch your object from `$forms` to `$htmxForms`
 
 ```html
 <!-- Replace $forms->render('your_form'); with this: -->
-$htmxForms->render('your_form');
+$htmxForms->render('your_form_field');
 ```
 
 Step 3. (there is no step 3)
@@ -40,7 +42,23 @@ The `Submit` button is automatically disabled on submission to prevent duplicate
 
 FormBuilderHtmx uses FormBuilder's "Option C: Preferred Method" for rendering. Refer to the 'Embed' tab of your Form Setup page for additional details.
 
-`$htmxForms->render()` is a drop-in replacement for the equivalent FormBuilder method. It can be hooked (details below) and accepts its second `$vars` argument.
+`$htmxForms->render()` is a drop-in replacement for the equivalent FormBuilder method. It can be hooked (details below) and accepts its second `$vars` argument. By drop-in replacement, it allows you to continue using the FormBuilder API as you would expect, including the script and CSS utilities.
+
+```html
+<!--
+  Keep your workflow, $htmxForms returns the same object as $forms
+  The second prefill parameter mirrors FormBuilder, add prefill values as needed
+-->
+$htmxForm = $htmxForms->render('your_form_field', [
+  'first_name' => "Biff",
+  'last_name' => "Tannen",
+  'email' => "biff@hillvalley.com",
+]);
+
+echo $htmxForms->styles;
+echo $htmxForms->scripts;
+echo $htmxForms;
+```
 
 ### Including An Activity Indicator
 
@@ -77,8 +95,9 @@ Here's an example of a full implementation with a 'spinner':
 Even more ta-dah.
 
 ## CSRF Protection
+
 **CSRF protection must be disabled for forms using HTMX/AJAX**
-ProcessWire doesn't match the submission to the user so CSRF errors will occur.
+CSRF errors will occur where forms are submitted via AJAX.
 
 ## How Does It Work?
 
@@ -98,8 +117,13 @@ $wire->addHookAfter('FormBuilderHtmx::render', function(HookEvent $event) {
 
   // Modify markup as desired
   $event->return =<<<EOT
-    <p>Look at these beautiful AJAX processed results:</p>
+    <p>Look at these AJAX processed results:</p>
     {$formHtmlMarkup}
   EOT;
 });
 ```
+
+## Nifty Tricks
+
+This module lets you use the same field multiple times on one page. Only one will be submitted and processed.
+
