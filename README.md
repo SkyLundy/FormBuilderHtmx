@@ -55,9 +55,9 @@ $htmxForm = $htmxForms->render('your_form_field', [
   'email' => "biff@hillvalley.com",
 ]);
 
-echo $htmxForms->styles;
-echo $htmxForms->scripts;
-echo $htmxForms;
+echo $htmxForm->styles;
+echo $htmxForm->scripts;
+echo $htmxForm;
 ```
 
 ### Including An Activity Indicator
