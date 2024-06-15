@@ -1,5 +1,5 @@
 {
-  "name": "firewire/fluency",
+  "name": "firewire/formbuilder-htmx",
   "type": "pw-module",
   "description": "Add AJAX abilities to ProcessWire FormBuilder forms",
   "keywords": [
