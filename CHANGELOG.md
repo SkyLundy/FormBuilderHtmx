@@ -1,5 +1,14 @@
 # FormBuilder HTMX Changelog
 
+## 1.0.1 2024-09-05
+
+### Bugfixes, new features, recommended for all users
+
+- Fix issue where multiple forms on the same page may not submit correctly
+- Add feature to pass additional HTML attributes that will be added to the `<form>` element when
+  rendered on the page. Example added to README.md
+- Simplified identifying and returning form markup upon submission
+
 ## 1.0.0 2024-06-12
 
 - Update readme

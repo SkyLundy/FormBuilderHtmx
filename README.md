@@ -94,10 +94,33 @@ Here's an example of a full implementation with a 'spinner':
 
 Even more ta-dah.
 
+## Adding Additional HTML Attributes To Your Forms
+
+You can add additional HTML attributes to the FormBuilder `<form>` element by passing an array of strings as a fourth argument. This allows you to add your own custom attributes, or add additional HTMX attributes to further extend the functionality of your FormBuilder forms.
+
+Here's an example of a form that will show a confirmation to the user before submitting the form:
+
+```html
+<?= $htmxForms->render('your_form', [], '#your-form-indicator', [
+  'hx-confirm="Are you sure you want to submit this form?"'
+]) ?>
+```
+
+The following attributes are automatically added by FormBuilderHtmx:
+
+- `hx-post`
+- `hx-headers`
+- `hx-disabled-elt="button[type=submit]"`
+- `hx-target`
+- `hx-swap`
+- `hx-indicator` Optional, only added if a CSS selector is passed via the third argument of the `$htmxForms->render()` method
+
+Attempting to add or replace these attributes may lead to issues or cause forms not to submit properly.
+
 ## CSRF Protection
 
-**CSRF protection must be disabled for forms using HTMX/AJAX**
-CSRF errors will occur where forms are submitted via AJAX.
+**CSRF protection may need to be disabled for forms using HTMX/AJAX**
+Test to ensure that CSRF errors aren't present when submitting your forms. Disable CSRF if issues are experienced.
 
 ## How Does It Work?
 
