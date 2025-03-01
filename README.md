@@ -42,11 +42,11 @@ The `Submit` button is automatically disabled on submission to prevent duplicate
 
 FormBuilderHtmx uses FormBuilder's "Option C: Preferred Method" for rendering. Refer to the 'Embed' tab of your Form Setup page for additional details.
 
-`$htmxForms->render()` is a drop-in replacement for the equivalent FormBuilder method. It can be hooked (details below) and accepts its second `$vars` argument. By drop-in replacement, it allows you to continue using the FormBuilder API as you would expect, including the script and CSS utilities.
+`$htmxForms->render()` is a drop-in replacement for the equivalent FormBuilder method. It can be hooked (details below) and accepts its second `$vars` argument. By 'drop-in replacement', it allows you to continue using the FormBuilder API as you would expect, including the scripts and CSS utilities.
 
 ```html
 <!--
-  Keep your workflow, $htmxForms returns the same object as $forms
+  $htmxForms returns the same object as $forms
   The second prefill parameter mirrors FormBuilder, add prefill values as needed
 -->
 $htmxForm = $htmxForms->render('your_form_field', [
@@ -119,8 +119,8 @@ Attempting to add or replace these attributes may lead to issues or cause forms 
 
 ## CSRF Protection
 
-**CSRF protection may need to be disabled for forms using HTMX/AJAX**
-Test to ensure that CSRF errors aren't present when submitting your forms. Disable CSRF if issues are experienced.
+**CSRF protection must be disabled for forms using HTMX/AJAX**
+Data that the CSRF feature in FormBuilder is not consistent across AJAX requests and submissions will fail with an error. If you are getting odd results or forms that are not working, check that CSRF is disabled before further troubleshooting.
 
 ## How Does It Work?
 
@@ -149,4 +149,3 @@ $wire->addHookAfter('FormBuilderHtmx::render', function(HookEvent $event) {
 ## Nifty Tricks
 
 This module lets you use the same field multiple times on one page. Only one will be submitted and processed.
-

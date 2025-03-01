@@ -8,8 +8,14 @@ class FormBuilderHtmx extends Wire implements Module
     /**
      * Names of request headers to perist data during per-form request/response
      */
-    private const ID_REQUEST_HEADER = 'Fb-Htmx-Id';
-    private const INDICATOR_REQUEST_HEADER = 'Fb-Htmx-Indicator';
+    private const ID_REQUEST_HEADER = 'fb-htmx-id';
+    private const INDICATOR_REQUEST_HEADER = 'fb-htmx-indicator';
+
+    /**
+     * Memoized parsed request headers
+     * @var array
+     */
+    private array $requestHeaders = [];
 
     /**
      * Holds the markup for a submitted form if it exists
@@ -104,13 +110,11 @@ class FormBuilderHtmx extends Wire implements Module
     {
         $input = wire('input');
 
-        $requestHeaders = getallheaders() + ['Hx-Request' => false, self::ID_REQUEST_HEADER => null];
-
         return $input->requestMethod('post') &&
                $input->_submitKey &&
                $input->_InputfieldForm &&
-               !!$requestHeaders[self::ID_REQUEST_HEADER] &&
-               $requestHeaders['Hx-Request'] === 'true';
+               $this->getHeaderValue(self::ID_REQUEST_HEADER, false) &&
+               $this->getHeaderValue('hx-request', false) === 'true';
     }
 
     /**
@@ -192,7 +196,10 @@ class FormBuilderHtmx extends Wire implements Module
      */
     private function htmxFormId(): string
     {
-        return getallheaders()[self::ID_REQUEST_HEADER] ?? 'fb-htmx-' . (new WireRandom)->alphanumeric(10);
+        return $this->getHeaderValue(
+            self::ID_REQUEST_HEADER,
+            'fb-htmx-' . (new WireRandom)->alphanumeric(10)
+        );
     }
 
     /**
@@ -201,6 +208,26 @@ class FormBuilderHtmx extends Wire implements Module
      */
     private function indicatorSelector(?string $indicator = null): ?string
     {
-        return getallheaders()[self::INDICATOR_REQUEST_HEADER] ?? $indicator;
+        return $this->getHeaderValue(self::INDICATOR_REQUEST_HEADER) ?? $indicator;
+    }
+
+    /**
+     * Gets a header by name. Is case insensitive to account for potential differences in
+     * server environments
+     *
+     * @param string $headerName Name of header
+     * @param mixed  $default    Default value if header does not exist
+     */
+    private function getHeaderValue(string $headerName, mixed $default = null): mixed
+    {
+        if (!$this->requestHeaders) {
+            $requestHeaders = getallheaders();
+
+            $this->requestHeaders = array_change_key_case($requestHeaders, CASE_LOWER);
+        }
+
+        $headerName = strtolower($headerName);
+
+        return $this->requestHeaders[$headerName] ?? $default;
     }
 }

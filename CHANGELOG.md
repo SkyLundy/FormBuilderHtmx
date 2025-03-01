@@ -1,5 +1,13 @@
 # FormBuilder HTMX Changelog
 
+## 1.0.2 2025-03-01
+
+### Bugfixes, recommended for all users
+
+- Change the way request headers are read to make them case-insensitive. Different hosting
+  environments may handle request header casing in different ways which was causing inconsistencies
+  and problems in identifying HTMX FormBuilder requests. 
+
 ## 1.0.1 2024-09-05
 
 ### Bugfixes, new features, recommended for all users
